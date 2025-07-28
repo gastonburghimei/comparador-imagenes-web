@@ -121,6 +121,10 @@ class FastImageComparator:
             # Promedio de todos los bordes
             edge_similarity = total_similarity / len(borders1)
             
+            # BOOST para lugares con bordes característicos
+            if edge_similarity > 0.4:  # Si hay similitud decente en bordes
+                edge_similarity = min(1.0, edge_similarity * 1.25)  # +25% boost
+            
             return min(1.0, edge_similarity)
             
         except Exception as e:
@@ -143,15 +147,19 @@ class FastImageComparator:
             pixels1 = list(edge1.getdata())
             pixels2 = list(edge2.getdata())
             
-            # Calcular similitud de patrones
+            # Calcular similitud de patrones (MÁS TOLERANTE para mismo lugar)
             similar_pixels = 0
-            tolerance = 30
+            tolerance = 50  # Más tolerante para variaciones de iluminación
             
             for p1, p2 in zip(pixels1, pixels2):
                 if abs(p1 - p2) < tolerance:
                     similar_pixels += 1
             
             texture_similarity = similar_pixels / len(pixels1)
+            
+            # BOOST para texturas decentes (ladrillos detectados)
+            if texture_similarity > 0.3:
+                texture_similarity = min(1.0, texture_similarity * 1.3)  # +30% boost
             
             return texture_similarity
             
@@ -293,7 +301,7 @@ class FastImageComparator:
             return 0.0
 
     def _compare_fixed_elements(self, img1, img2):
-        """Detecta elementos fijos como puertas, ventanas, estructuras"""
+        """Detecta elementos fijos como puertas, ventanas, estructuras (MEJORADO)"""
         try:
             # Usar detección de bordes para encontrar elementos estructurales
             from PIL import ImageFilter
@@ -301,18 +309,30 @@ class FastImageComparator:
             gray1 = img1.convert('L').resize((150, 100), Image.Resampling.LANCZOS)
             gray2 = img2.convert('L').resize((150, 100), Image.Resampling.LANCZOS)
             
-            # Aplicar filtros para detectar líneas y estructuras
+            # Aplicar múltiples filtros para mejor detección
             edges1 = gray1.filter(ImageFilter.FIND_EDGES)
             edges2 = gray2.filter(ImageFilter.FIND_EDGES)
             
-            # Comparar patrones estructurales
-            diff = ImageChops.difference(edges1, edges2)
+            # También detectar contornos más suaves
+            contour1 = gray1.filter(ImageFilter.CONTOUR)
+            contour2 = gray2.filter(ImageFilter.CONTOUR)
+            
+            # Combinar detecciones
+            combined1 = ImageChops.add(edges1, contour1)
+            combined2 = ImageChops.add(edges2, contour2)
+            
+            # Comparar patrones estructurales con más tolerancia
+            diff = ImageChops.difference(combined1, combined2)
             from PIL import ImageStat
             stat = ImageStat.Stat(diff)
             mean_diff = stat.mean[0]
             
-            # Convertir a similitud (menos diferencia = más similitud)
-            similarity = max(0, 1 - mean_diff / 128)
+            # Convertir a similitud (MÁS TOLERANTE)
+            similarity = max(0, 1 - mean_diff / 160)  # Antes era /128, ahora más tolerante
+            
+            # BOOST para elementos estructurales detectados
+            if similarity > 0.4:  # Si hay cierta similitud estructural
+                similarity = min(1.0, similarity * 1.4)  # +40% boost para elementos únicos
             
             return similarity
             
@@ -321,15 +341,15 @@ class FastImageComparator:
             return 0.0
 
     def _calculate_background_similarity(self, results):
-        """Calcula similitud total enfocada en fondos"""
+        """Calcula similitud INTELIGENTE para 'mismo lugar' vs 'misma foto'"""
         try:
-            # Pesos optimizados para detección de fondos (COLORES MEJORADOS)
+            # Pesos optimizados para detectar MISMO LUGAR (no exactitud)
             weights = {
-                'edge_similarity': 0.30,      # Bordes importantes
-                'color_similarity': 0.30,     # COLORES MUY IMPORTANTES (arreglado)
-                'texture_similarity': 0.25,   # Texturas (ladrillos, etc.)
-                'background_hash': 0.10,      # Patrones estructurales
-                'structural_similarity': 0.05  # Elementos fijos
+                'texture_similarity': 0.35,   # TEXTURAS más importantes (ladrillos únicos)
+                'edge_similarity': 0.25,      # Estructura del lugar
+                'color_similarity': 0.25,     # Paleta general del lugar
+                'structural_similarity': 0.10, # Elementos fijos (puertas)
+                'background_hash': 0.05       # Patrones generales
             }
             
             overall = 0
@@ -337,14 +357,35 @@ class FastImageComparator:
                 if metric in results:
                     overall += results[metric] * weight
             
-            # Bonus si múltiples métricas son altas (mismo lugar)
-            high_metrics = sum(1 for metric in weights.keys() 
-                             if results.get(metric, 0) > 0.7)
+            # BONIFICACIONES INTELIGENTES para "mismo lugar"
             
-            if high_metrics >= 3:
-                overall = min(1.0, overall * 1.15)  # Bonus 15%
-            elif high_metrics >= 2:
-                overall = min(1.0, overall * 1.1)   # Bonus 10%
+            # 1. Bonus por TEXTURAS altas (ladrillo característico)
+            texture_score = results.get('texture_similarity', 0)
+            if texture_score > 0.6:
+                overall = min(1.0, overall * 1.2)  # +20% por textura característica
+            elif texture_score > 0.4:
+                overall = min(1.0, overall * 1.15) # +15% por textura parcial
+            
+            # 2. Bonus por ELEMENTOS ESTRUCTURALES (puerta, marcos)
+            structural_score = results.get('structural_similarity', 0)
+            if structural_score > 0.5:
+                overall = min(1.0, overall * 1.1)  # +10% por elementos únicos
+            
+            # 3. Bonus por MÚLTIPLES INDICADORES de mismo lugar
+            decent_metrics = sum(1 for metric in weights.keys() 
+                               if results.get(metric, 0) > 0.5)  # Umbral más bajo
+            
+            if decent_metrics >= 4:
+                overall = min(1.0, overall * 1.25)  # +25% si 4+ métricas decentes
+            elif decent_metrics >= 3:
+                overall = min(1.0, overall * 1.2)   # +20% si 3+ métricas decentes
+            elif decent_metrics >= 2:
+                overall = min(1.0, overall * 1.15)  # +15% si 2+ métricas decentes
+            
+            # 4. BOOST final para casos obvios de mismo lugar
+            avg_score = sum(results.get(m, 0) for m in weights.keys()) / len(weights)
+            if avg_score > 0.45:  # Si el promedio es decente
+                overall = min(1.0, overall * 1.1)  # +10% boost final
             
             return overall
             
