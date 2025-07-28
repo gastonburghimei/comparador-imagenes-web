@@ -121,9 +121,9 @@ class FastImageComparator:
             # Promedio de todos los bordes
             edge_similarity = total_similarity / len(borders1)
             
-            # BOOST para lugares con bordes característicos
-            if edge_similarity > 0.4:  # Si hay similitud decente en bordes
-                edge_similarity = min(1.0, edge_similarity * 1.25)  # +25% boost
+            # BOOST CONSERVADOR solo para bordes realmente similares
+            if edge_similarity > 0.6:  # Umbral más alto
+                edge_similarity = min(1.0, edge_similarity * 1.15)  # Menos boost
             
             return min(1.0, edge_similarity)
             
@@ -157,9 +157,22 @@ class FastImageComparator:
             
             texture_similarity = similar_pixels / len(pixels1)
             
-            # BOOST para texturas decentes (ladrillos detectados)
-            if texture_similarity > 0.3:
-                texture_similarity = min(1.0, texture_similarity * 1.3)  # +30% boost
+            # DETECCIÓN DE TEXTURAS COMPLETAMENTE DIFERENTES
+            # Comparar distribución de intensidades de bordes
+            edge1_intensity = sum(pixels1) / len(pixels1) if pixels1 else 0
+            edge2_intensity = sum(pixels2) / len(pixels2) if pixels2 else 0
+            
+            # Si una imagen tiene muchos bordes y otra pocos (uniforme vs compleja)
+            intensity_diff = abs(edge1_intensity - edge2_intensity)
+            
+            if intensity_diff > 40:  # Una muy uniforme, otra muy texturizada
+                texture_similarity *= 0.5  # PENALTY del 50%
+            
+            # BOOST CONSERVADOR solo para texturas genuinamente altas
+            if texture_similarity > 0.6:  # Umbral más alto
+                texture_similarity = min(1.0, texture_similarity * 1.2)  # Menos boost
+            elif texture_similarity > 0.4:
+                texture_similarity = min(1.0, texture_similarity * 1.1)  # Boost mínimo
             
             return texture_similarity
             
@@ -247,8 +260,36 @@ class FastImageComparator:
             # Promedio de todas las regiones
             final_similarity = total_similarity / len(regions1)
             
-            # Normalizar y aplicar boost para casos obvios
-            final_similarity = min(1.0, final_similarity * 1.2)
+            # DETECCIÓN DE FONDOS COMPLETAMENTE DIFERENTES
+            # Verificar si son fondos muy diferentes (ej: azul vs bokeh dorado)
+            
+            # Analizar varianza de colores en cada región
+            region_variances = []
+            for reg1, reg2 in zip(regions1, regions2):
+                # Convertir a arrays para análisis estadístico
+                pixels1 = list(reg1.getdata())
+                pixels2 = list(reg2.getdata())
+                
+                # Calcular varianza de cada región
+                if pixels1 and pixels2:
+                    # Promedio de varianza RGB de cada región
+                    var1 = sum(abs(p[0] - p[1]) + abs(p[1] - p[2]) + abs(p[0] - p[2]) for p in pixels1) / len(pixels1)
+                    var2 = sum(abs(p[0] - p[1]) + abs(p[1] - p[2]) + abs(p[0] - p[2]) for p in pixels2) / len(pixels2)
+                    region_variances.append(abs(var1 - var2))
+            
+            avg_variance_diff = sum(region_variances) / len(region_variances) if region_variances else 0
+            
+            # Si una imagen es muy uniforme y otra muy variada (azul vs bokeh)
+            if avg_variance_diff > 30:  # Umbral para fondos muy diferentes
+                final_similarity *= 0.4  # PENALTY SEVERA del 60%
+            
+            # Si la similitud es muy baja, no aplicar boost
+            if final_similarity < 0.4:
+                # NO aplicar boost para fondos diferentes
+                return final_similarity
+            else:
+                # Solo aplicar boost moderado para fondos genuinamente similares
+                final_similarity = min(1.0, final_similarity * 1.1)  # Menos boost
             
             return final_similarity
             
@@ -365,15 +406,42 @@ class FastImageComparator:
             return 0.0
 
     def _calculate_background_similarity(self, results):
-        """Calcula similitud ESTRICTA para evitar falsos positivos"""
+        """Calcula similitud ULTRA-ESTRICTA - Fondos diferentes deben dar <30%"""
         try:
-            # Pesos rebalanceados (más conservadores)
+            # Obtener métricas individuales
+            edge_score = results.get('edge_similarity', 0)
+            color_score = results.get('color_similarity', 0) 
+            texture_score = results.get('texture_similarity', 0)
+            structural_score = results.get('structural_similarity', 0)
+            hash_score = results.get('background_hash', 0)
+            
+            # DETECCIÓN DE FONDOS COMPLETAMENTE DIFERENTES
+            # Si CUALQUIER métrica principal es muy baja, es sospechoso
+            main_scores = [edge_score, color_score, texture_score]
+            very_low_scores = sum(1 for score in main_scores if score < 0.4)
+            
+            # Si hay fondos muy diferentes, ser ultra-conservador
+            if very_low_scores >= 1:  # Si CUALQUIER métrica principal es muy baja
+                # Usar solo el promedio SIN bonificaciones
+                overall = (edge_score * 0.4 + color_score * 0.4 + 
+                          texture_score * 0.15 + structural_score * 0.05)
+                
+                # PENALTY AGRESIVA para fondos diferentes
+                if very_low_scores >= 2:  # Si 2+ métricas son muy bajas
+                    overall *= 0.6  # PENALTY del 40%
+                elif very_low_scores >= 1:  # Si 1+ métrica es muy baja
+                    overall *= 0.75  # PENALTY del 25%
+                
+                # LÍMITE MÁXIMO para fondos diferentes
+                return min(overall, 0.4)  # MÁXIMO 40% para fondos diferentes
+            
+            # CÁLCULO NORMAL solo para fondos genuinamente similares
             weights = {
-                'edge_similarity': 0.30,      # Estructura más importante
-                'color_similarity': 0.30,     # Colores críticos
-                'texture_similarity': 0.25,   # Texturas (menos peso)
-                'structural_similarity': 0.10, # Elementos fijos
-                'background_hash': 0.05       # Patrones (menos peso)
+                'edge_similarity': 0.35,      # Estructura más importante
+                'color_similarity': 0.35,     # Colores críticos  
+                'texture_similarity': 0.20,   # Texturas
+                'structural_similarity': 0.07, # Elementos fijos
+                'background_hash': 0.03       # Patrones (muy poco peso)
             }
             
             overall = 0
@@ -381,39 +449,23 @@ class FastImageComparator:
                 if metric in results:
                     overall += results[metric] * weight
             
-            # PENALTY para fondos genuinamente diferentes
-            # Si TODAS las métricas principales son mediocres, es sospechoso
-            main_metrics = ['edge_similarity', 'color_similarity', 'texture_similarity']
-            low_metrics = sum(1 for metric in main_metrics 
-                            if results.get(metric, 0) < 0.6)
+            # Bonificaciones SOLO para casos EXCEPCIONALES
+            exceptional_metrics = sum(1 for score in main_scores if score > 0.8)
             
-            if low_metrics >= 2:  # Si 2+ métricas principales son bajas
-                overall *= 0.8  # PENALTY del 20%
+            if exceptional_metrics >= 3:  # Todas las métricas principales > 80%
+                overall = min(1.0, overall * 1.15)  # +15% solo en casos excepcionales
+            elif exceptional_metrics >= 2:  # 2+ métricas > 80%
+                overall = min(1.0, overall * 1.05)  # +5% muy conservador
             
-            # BONIFICACIONES MÁS ESTRICTAS (solo para casos CLAROS)
+            # LÍMITES FINALES según promedio
+            avg_main = sum(main_scores) / len(main_scores)
             
-            # 1. Bonus SOLO si texturas son realmente altas
-            texture_score = results.get('texture_similarity', 0)
-            if texture_score > 0.75:  # Más estricto
-                overall = min(1.0, overall * 1.15)  # Menos bonus
-            
-            # 2. Bonus SOLO si múltiples métricas son REALMENTE altas
-            high_metrics = sum(1 for metric in weights.keys() 
-                             if results.get(metric, 0) > 0.7)  # Umbral más alto
-            
-            if high_metrics >= 3:
-                overall = min(1.0, overall * 1.2)   # +20% solo si 3+ son ALTAS
-            elif high_metrics >= 2:
-                overall = min(1.0, overall * 1.1)   # +10% si 2+ son ALTAS
-            
-            # 3. VERIFICACIÓN FINAL: Evitar falsos positivos
-            # Si el promedio general es bajo, limitar resultado máximo
-            avg_score = sum(results.get(m, 0) for m in weights.keys()) / len(weights)
-            
-            if avg_score < 0.5:  # Si promedio es bajo
-                overall = min(overall, 0.6)  # Máximo 60%
-            elif avg_score < 0.6:  # Si promedio es medio
-                overall = min(overall, 0.8)  # Máximo 80%
+            if avg_main < 0.45:  # Promedio bajo
+                overall = min(overall, 0.3)  # Máximo 30%
+            elif avg_main < 0.55:  # Promedio medio-bajo
+                overall = min(overall, 0.5)  # Máximo 50%
+            elif avg_main < 0.65:  # Promedio medio
+                overall = min(overall, 0.7)  # Máximo 70%
             
             return overall
             
