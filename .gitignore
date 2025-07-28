@@ -1,0 +1,47 @@
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos temporales
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración local
+.env
+*.env
+config.local.py
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos específicos del proyecto
+credentials/
+*.key
+*.json
+test_*.py
+diagnostico.py
+demo.py
+app_*.py
+!app_web.py
+*.sql
+*.gs
+*.xlsx
+*.md
+!README_WEB.md
+main.*
+script.js
+index.html
+style.css 
