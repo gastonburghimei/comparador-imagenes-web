@@ -160,52 +160,89 @@ class FastImageComparator:
             return 0.0
 
     def _compare_background_colors(self, img1, img2):
-        """Compara colores dominantes del fondo, excluyendo centro"""
+        """Compara colores dominantes del fondo MEJORADO"""
         try:
-            # Redimensionar
-            size = (150, 100)
+            # Redimensionar para análisis
+            size = (200, 150)
             img1_small = img1.resize(size, Image.Resampling.LANCZOS)
             img2_small = img2.resize(size, Image.Resampling.LANCZOS)
             
-            # Extraer solo áreas periféricas (excluyendo centro donde están las personas)
             w, h = size
-            center_exclude = 40  # Área central a excluir
+            # Área central más pequeña para excluir solo personas
+            center_w = w // 3  # Solo el tercio central horizontal
+            center_h = h // 3  # Solo el tercio central vertical
             
-            def extract_background_pixels(img):
-                pixels = []
-                data = list(img.getdata())
+            def extract_background_regions(img):
+                """Extrae múltiples regiones de fondo"""
+                regions = []
                 
-                for y in range(h):
-                    for x in range(w):
-                        # Solo incluir píxeles que NO estén en el centro
-                        if (x < center_exclude or x >= w - center_exclude or 
-                            y < center_exclude or y >= h - center_exclude):
-                            pixel_index = y * w + x
-                            if pixel_index < len(data):
-                                pixels.append(data[pixel_index])
+                # Región superior (toda)
+                regions.append(img.crop((0, 0, w, h//4)))
                 
-                return pixels
+                # Región inferior (toda)  
+                regions.append(img.crop((0, 3*h//4, w, h)))
+                
+                # Regiones laterales (excluyendo centro)
+                regions.append(img.crop((0, h//4, w//4, 3*h//4)))  # Izquierda
+                regions.append(img.crop((3*w//4, h//4, w, 3*h//4)))  # Derecha
+                
+                return regions
             
-            bg_pixels1 = extract_background_pixels(img1_small)
-            bg_pixels2 = extract_background_pixels(img2_small)
+            regions1 = extract_background_regions(img1_small)
+            regions2 = extract_background_regions(img2_small)
             
-            # Crear histogramas solo de píxeles de fondo
-            from collections import Counter
-            hist1 = Counter(bg_pixels1)
-            hist2 = Counter(bg_pixels2)
+            total_similarity = 0
             
-            # Comparar distribuciones de color
-            all_colors = set(hist1.keys()) | set(hist2.keys())
-            total1 = sum(hist1.values()) or 1
-            total2 = sum(hist2.values()) or 1
+            for reg1, reg2 in zip(regions1, regions2):
+                # Obtener histogramas de cada región
+                hist1 = reg1.histogram()
+                hist2 = reg2.histogram()
+                
+                # Simplificar histogramas agrupando colores similares
+                def simplify_histogram(hist, bins=32):
+                    """Agrupa colores similares para mejor comparación"""
+                    simplified = [0] * bins
+                    group_size = 256 // bins
+                    
+                    for i, count in enumerate(hist):
+                        group = min(i // group_size, bins - 1)
+                        simplified[group] += count
+                    
+                    return simplified
+                
+                # Simplificar para R, G, B por separado
+                simple_hist1 = []
+                simple_hist2 = []
+                
+                # Procesar cada canal (R, G, B)
+                for channel in range(3):
+                    start = channel * 256
+                    end = start + 256
+                    channel_hist1 = hist1[start:end]
+                    channel_hist2 = hist2[start:end]
+                    
+                    simple_hist1.extend(simplify_histogram(channel_hist1))
+                    simple_hist2.extend(simplify_histogram(channel_hist2))
+                
+                # Comparar histogramas simplificados
+                total1 = sum(simple_hist1) or 1
+                total2 = sum(simple_hist2) or 1
+                
+                region_similarity = 0
+                for h1, h2 in zip(simple_hist1, simple_hist2):
+                    freq1 = h1 / total1
+                    freq2 = h2 / total2
+                    region_similarity += min(freq1, freq2)
+                
+                total_similarity += region_similarity
             
-            similarity = 0
-            for color in all_colors:
-                freq1 = hist1.get(color, 0) / total1
-                freq2 = hist2.get(color, 0) / total2
-                similarity += min(freq1, freq2)
+            # Promedio de todas las regiones
+            final_similarity = total_similarity / len(regions1)
             
-            return similarity
+            # Normalizar y aplicar boost para casos obvios
+            final_similarity = min(1.0, final_similarity * 1.2)
+            
+            return final_similarity
             
         except Exception as e:
             logger.error(f"Error en colores de fondo: {e}")
@@ -286,12 +323,12 @@ class FastImageComparator:
     def _calculate_background_similarity(self, results):
         """Calcula similitud total enfocada en fondos"""
         try:
-            # Pesos optimizados para detección de fondos
+            # Pesos optimizados para detección de fondos (COLORES MEJORADOS)
             weights = {
-                'edge_similarity': 0.35,      # Bordes son muy importantes
+                'edge_similarity': 0.30,      # Bordes importantes
+                'color_similarity': 0.30,     # COLORES MUY IMPORTANTES (arreglado)
                 'texture_similarity': 0.25,   # Texturas (ladrillos, etc.)
-                'color_similarity': 0.20,     # Colores del fondo
-                'background_hash': 0.15,      # Patrones estructurales
+                'background_hash': 0.10,      # Patrones estructurales
                 'structural_similarity': 0.05  # Elementos fijos
             }
             
