@@ -39,61 +39,282 @@ class FastImageComparator:
             return None
     
     def compare_images_fast(self, image1, image2):
-        """Comparación rápida y directa"""
+        """Comparación específica de fondos, ignorando personas centrales"""
         try:
             results = {}
             
-            # 1. Comparación directa de píxeles (MUY importante para idénticas)
-            results['pixel_similarity'] = self._compare_pixels_fast(image1, image2)
+            # 1. Comparación de BORDES (donde está el fondo)
+            results['edge_similarity'] = self._compare_background_edges(image1, image2)
             
-            # 2. Hash perceptual rápido
-            results['hash_similarity'] = self._compare_hashes_fast(image1, image2)
+            # 2. Comparación de TEXTURAS (ladrillos, superficies)
+            results['texture_similarity'] = self._compare_background_textures(image1, image2)
             
-            # 3. Comparación de histogramas (solo si no son idénticas)
-            if results['pixel_similarity'] < 0.95:
-                results['color_similarity'] = self._compare_histograms_fast(image1, image2)
-            else:
-                results['color_similarity'] = results['pixel_similarity']
+            # 3. Comparación de COLORES dominantes del fondo
+            results['color_similarity'] = self._compare_background_colors(image1, image2)
             
-            # 4. Estadísticas básicas (solo si necesario)
-            if results['pixel_similarity'] < 0.90:
-                results['stats_similarity'] = self._compare_stats_fast(image1, image2)
-            else:
-                results['stats_similarity'] = results['pixel_similarity']
+            # 4. Hash perceptual de áreas NO centrales
+            results['background_hash'] = self._compare_background_hash(image1, image2)
             
-            # 5. Estructura (solo para casos no obvios)
-            if results['pixel_similarity'] < 0.85:
-                results['structural_similarity'] = self._compare_structure_fast(image1, image2)
-            else:
-                results['structural_similarity'] = results['pixel_similarity']
+            # 5. Análisis estructural de elementos fijos (puertas, ventanas)
+            results['structural_similarity'] = self._compare_fixed_elements(image1, image2)
             
-            # Cálculo optimizado de similitud general
-            if results['pixel_similarity'] >= 0.99:
-                overall = 1.0
-            elif results['pixel_similarity'] > 0.95:
-                overall = results['pixel_similarity'] * 0.95 + results['hash_similarity'] * 0.05
-            elif results['pixel_similarity'] > 0.85:
-                overall = (
-                    results['pixel_similarity'] * 0.7 +
-                    results['color_similarity'] * 0.15 +
-                    results['hash_similarity'] * 0.15
-                )
-            else:
-                overall = (
-                    results['pixel_similarity'] * 0.5 +
-                    results['color_similarity'] * 0.25 +
-                    results['hash_similarity'] * 0.15 +
-                    results['stats_similarity'] * 0.06 +
-                    results['structural_similarity'] * 0.04
-                )
-            
+            # Cálculo especializado para fondos
+            overall = self._calculate_background_similarity(results)
             results['overall_similarity'] = overall
+            
+            # Mantener compatibilidad con frontend
+            results['pixel_similarity'] = results['edge_similarity']
+            results['hash_similarity'] = results['background_hash']
+            results['stats_similarity'] = results['texture_similarity']
+            
             return results
             
         except Exception as e:
-            logger.error(f"Error comparando imágenes: {e}")
+            logger.error(f"Error comparando fondos: {e}")
             return self._default_results()
     
+    def _compare_background_edges(self, img1, img2):
+        """Compara los bordes de las imágenes donde está el fondo"""
+        try:
+            # Redimensionar para análisis
+            size = (300, 200)
+            img1_resized = img1.resize(size, Image.Resampling.LANCZOS)
+            img2_resized = img2.resize(size, Image.Resampling.LANCZOS)
+            
+            # Extraer bordes (donde normalmente está el fondo)
+            w, h = size
+            border_size = 50  # Ancho del borde a analizar
+            
+            # Extraer regiones de borde
+            def extract_borders(img):
+                borders = []
+                # Borde superior
+                borders.append(img.crop((0, 0, w, border_size)))
+                # Borde inferior  
+                borders.append(img.crop((0, h-border_size, w, h)))
+                # Borde izquierdo
+                borders.append(img.crop((0, 0, border_size, h)))
+                # Borde derecho
+                borders.append(img.crop((w-border_size, 0, w, h)))
+                return borders
+            
+            borders1 = extract_borders(img1_resized)
+            borders2 = extract_borders(img2_resized)
+            
+            # Comparar cada borde
+            total_similarity = 0
+            for b1, b2 in zip(borders1, borders2):
+                # Comparar histogramas de cada borde
+                hist1 = b1.histogram()
+                hist2 = b2.histogram()
+                
+                # Correlación de histogramas
+                correlation = 0
+                total1 = sum(hist1) or 1
+                total2 = sum(hist2) or 1
+                
+                for h1, h2 in zip(hist1, hist2):
+                    correlation += min(h1/total1, h2/total2)
+                
+                total_similarity += correlation
+            
+            # Promedio de todos los bordes
+            edge_similarity = total_similarity / len(borders1)
+            
+            return min(1.0, edge_similarity)
+            
+        except Exception as e:
+            logger.error(f"Error en bordes: {e}")
+            return 0.0
+
+    def _compare_background_textures(self, img1, img2):
+        """Compara texturas del fondo (ladrillos, superficies)"""
+        try:
+            # Convertir a escala de grises para análisis de textura
+            gray1 = img1.convert('L').resize((200, 150), Image.Resampling.LANCZOS)
+            gray2 = img2.convert('L').resize((200, 150), Image.Resampling.LANCZOS)
+            
+            # Aplicar filtro para detectar texturas
+            from PIL import ImageFilter
+            edge1 = gray1.filter(ImageFilter.FIND_EDGES)
+            edge2 = gray2.filter(ImageFilter.FIND_EDGES)
+            
+            # Comparar patrones de bordes/texturas
+            pixels1 = list(edge1.getdata())
+            pixels2 = list(edge2.getdata())
+            
+            # Calcular similitud de patrones
+            similar_pixels = 0
+            tolerance = 30
+            
+            for p1, p2 in zip(pixels1, pixels2):
+                if abs(p1 - p2) < tolerance:
+                    similar_pixels += 1
+            
+            texture_similarity = similar_pixels / len(pixels1)
+            
+            return texture_similarity
+            
+        except Exception as e:
+            logger.error(f"Error en texturas: {e}")
+            return 0.0
+
+    def _compare_background_colors(self, img1, img2):
+        """Compara colores dominantes del fondo, excluyendo centro"""
+        try:
+            # Redimensionar
+            size = (150, 100)
+            img1_small = img1.resize(size, Image.Resampling.LANCZOS)
+            img2_small = img2.resize(size, Image.Resampling.LANCZOS)
+            
+            # Extraer solo áreas periféricas (excluyendo centro donde están las personas)
+            w, h = size
+            center_exclude = 40  # Área central a excluir
+            
+            def extract_background_pixels(img):
+                pixels = []
+                data = list(img.getdata())
+                
+                for y in range(h):
+                    for x in range(w):
+                        # Solo incluir píxeles que NO estén en el centro
+                        if (x < center_exclude or x >= w - center_exclude or 
+                            y < center_exclude or y >= h - center_exclude):
+                            pixel_index = y * w + x
+                            if pixel_index < len(data):
+                                pixels.append(data[pixel_index])
+                
+                return pixels
+            
+            bg_pixels1 = extract_background_pixels(img1_small)
+            bg_pixels2 = extract_background_pixels(img2_small)
+            
+            # Crear histogramas solo de píxeles de fondo
+            from collections import Counter
+            hist1 = Counter(bg_pixels1)
+            hist2 = Counter(bg_pixels2)
+            
+            # Comparar distribuciones de color
+            all_colors = set(hist1.keys()) | set(hist2.keys())
+            total1 = sum(hist1.values()) or 1
+            total2 = sum(hist2.values()) or 1
+            
+            similarity = 0
+            for color in all_colors:
+                freq1 = hist1.get(color, 0) / total1
+                freq2 = hist2.get(color, 0) / total2
+                similarity += min(freq1, freq2)
+            
+            return similarity
+            
+        except Exception as e:
+            logger.error(f"Error en colores de fondo: {e}")
+            return 0.0
+
+    def _compare_background_hash(self, img1, img2):
+        """Hash perceptual enfocado en áreas de fondo"""
+        try:
+            # Crear máscaras que excluyan el centro
+            size = (16, 16)
+            gray1 = img1.convert('L').resize(size, Image.Resampling.LANCZOS)
+            gray2 = img2.convert('L').resize(size, Image.Resampling.LANCZOS)
+            
+            def background_hash(img):
+                pixels = list(img.getdata())
+                w, h = size
+                
+                # Solo considerar píxeles de bordes para el hash
+                bg_pixels = []
+                border_size = 4  # Píxeles de borde a considerar
+                
+                for y in range(h):
+                    for x in range(w):
+                        if (x < border_size or x >= w - border_size or 
+                            y < border_size or y >= h - border_size):
+                            bg_pixels.append(pixels[y * w + x])
+                
+                if not bg_pixels:
+                    return "0" * 64
+                
+                avg = sum(bg_pixels) / len(bg_pixels)
+                return ''.join('1' if p > avg else '0' for p in bg_pixels)
+            
+            hash1 = background_hash(gray1)
+            hash2 = background_hash(gray2)
+            
+            # Comparar hashes
+            if len(hash1) == len(hash2):
+                matches = sum(h1 == h2 for h1, h2 in zip(hash1, hash2))
+                similarity = matches / len(hash1)
+            else:
+                similarity = 0.0
+            
+            return similarity
+            
+        except Exception as e:
+            logger.error(f"Error en hash de fondo: {e}")
+            return 0.0
+
+    def _compare_fixed_elements(self, img1, img2):
+        """Detecta elementos fijos como puertas, ventanas, estructuras"""
+        try:
+            # Usar detección de bordes para encontrar elementos estructurales
+            from PIL import ImageFilter
+            
+            gray1 = img1.convert('L').resize((150, 100), Image.Resampling.LANCZOS)
+            gray2 = img2.convert('L').resize((150, 100), Image.Resampling.LANCZOS)
+            
+            # Aplicar filtros para detectar líneas y estructuras
+            edges1 = gray1.filter(ImageFilter.FIND_EDGES)
+            edges2 = gray2.filter(ImageFilter.FIND_EDGES)
+            
+            # Comparar patrones estructurales
+            diff = ImageChops.difference(edges1, edges2)
+            from PIL import ImageStat
+            stat = ImageStat.Stat(diff)
+            mean_diff = stat.mean[0]
+            
+            # Convertir a similitud (menos diferencia = más similitud)
+            similarity = max(0, 1 - mean_diff / 128)
+            
+            return similarity
+            
+        except Exception as e:
+            logger.error(f"Error en elementos fijos: {e}")
+            return 0.0
+
+    def _calculate_background_similarity(self, results):
+        """Calcula similitud total enfocada en fondos"""
+        try:
+            # Pesos optimizados para detección de fondos
+            weights = {
+                'edge_similarity': 0.35,      # Bordes son muy importantes
+                'texture_similarity': 0.25,   # Texturas (ladrillos, etc.)
+                'color_similarity': 0.20,     # Colores del fondo
+                'background_hash': 0.15,      # Patrones estructurales
+                'structural_similarity': 0.05  # Elementos fijos
+            }
+            
+            overall = 0
+            for metric, weight in weights.items():
+                if metric in results:
+                    overall += results[metric] * weight
+            
+            # Bonus si múltiples métricas son altas (mismo lugar)
+            high_metrics = sum(1 for metric in weights.keys() 
+                             if results.get(metric, 0) > 0.7)
+            
+            if high_metrics >= 3:
+                overall = min(1.0, overall * 1.15)  # Bonus 15%
+            elif high_metrics >= 2:
+                overall = min(1.0, overall * 1.1)   # Bonus 10%
+            
+            return overall
+            
+        except Exception as e:
+            logger.error(f"Error calculando similitud: {e}")
+            return 0.0
+
     def _compare_pixels_fast(self, img1, img2):
         """Comparación ultra-rápida de píxeles optimizada para imágenes idénticas"""
         try:
