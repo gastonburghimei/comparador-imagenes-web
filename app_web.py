@@ -257,40 +257,64 @@ class FastImageComparator:
             return 0.0
 
     def _compare_background_hash(self, img1, img2):
-        """Hash perceptual enfocado en áreas de fondo"""
+        """Hash perceptual ESTRICTO enfocado SOLO en áreas de fondo"""
         try:
-            # Crear máscaras que excluyan el centro
-            size = (16, 16)
+            # Crear máscaras que excluyan MÁS del centro
+            size = (20, 20)  # Más resolución para mejor precisión
             gray1 = img1.convert('L').resize(size, Image.Resampling.LANCZOS)
             gray2 = img2.convert('L').resize(size, Image.Resampling.LANCZOS)
             
-            def background_hash(img):
+            def strict_background_hash(img):
                 pixels = list(img.getdata())
                 w, h = size
                 
-                # Solo considerar píxeles de bordes para el hash
+                # Solo considerar ESQUINAS EXTREMAS (excluir mucho más del centro)
                 bg_pixels = []
-                border_size = 4  # Píxeles de borde a considerar
+                corner_size = 6  # Más área central excluida
                 
                 for y in range(h):
                     for x in range(w):
-                        if (x < border_size or x >= w - border_size or 
-                            y < border_size or y >= h - border_size):
-                            bg_pixels.append(pixels[y * w + x])
+                        # Solo esquinas y bordes extremos
+                        if (x < corner_size or x >= w - corner_size or 
+                            y < corner_size or y >= h - corner_size):
+                            # Excluir también área intermedia del centro
+                            center_x = w // 2
+                            center_y = h // 2
+                            distance_from_center = abs(x - center_x) + abs(y - center_y)
+                            
+                            # Solo incluir si está lejos del centro
+                            if distance_from_center > 6:
+                                bg_pixels.append(pixels[y * w + x])
                 
-                if not bg_pixels:
-                    return "0" * 64
+                if len(bg_pixels) < 10:  # Si muy pocos píxeles, hash genérico
+                    return "0" * 32
                 
+                # Hash más corto pero más específico
                 avg = sum(bg_pixels) / len(bg_pixels)
-                return ''.join('1' if p > avg else '0' for p in bg_pixels)
+                std_dev = (sum((p - avg) ** 2 for p in bg_pixels) / len(bg_pixels)) ** 0.5
+                
+                # Considerar varianza para fondos más complejos
+                hash_bits = []
+                for p in bg_pixels:
+                    if std_dev > 10:  # Si hay variación significativa
+                        hash_bits.append('1' if p > avg + std_dev/2 else '0')
+                    else:  # Fondo uniforme
+                        hash_bits.append('1' if p > avg else '0')
+                
+                return ''.join(hash_bits[:32])  # Limitar tamaño
             
-            hash1 = background_hash(gray1)
-            hash2 = background_hash(gray2)
+            hash1 = strict_background_hash(gray1)
+            hash2 = strict_background_hash(gray2)
             
-            # Comparar hashes
-            if len(hash1) == len(hash2):
+            # Comparar hashes con más estrictez
+            if len(hash1) == len(hash2) and len(hash1) > 10:
                 matches = sum(h1 == h2 for h1, h2 in zip(hash1, hash2))
                 similarity = matches / len(hash1)
+                
+                # Penalty si la similitud es solo mediana (posible coincidencia)
+                if 0.4 < similarity < 0.8:
+                    similarity *= 0.7  # Reducir similitudes mediocres
+                    
             else:
                 similarity = 0.0
             
@@ -341,15 +365,15 @@ class FastImageComparator:
             return 0.0
 
     def _calculate_background_similarity(self, results):
-        """Calcula similitud INTELIGENTE para 'mismo lugar' vs 'misma foto'"""
+        """Calcula similitud ESTRICTA para evitar falsos positivos"""
         try:
-            # Pesos optimizados para detectar MISMO LUGAR (no exactitud)
+            # Pesos rebalanceados (más conservadores)
             weights = {
-                'texture_similarity': 0.35,   # TEXTURAS más importantes (ladrillos únicos)
-                'edge_similarity': 0.25,      # Estructura del lugar
-                'color_similarity': 0.25,     # Paleta general del lugar
-                'structural_similarity': 0.10, # Elementos fijos (puertas)
-                'background_hash': 0.05       # Patrones generales
+                'edge_similarity': 0.30,      # Estructura más importante
+                'color_similarity': 0.30,     # Colores críticos
+                'texture_similarity': 0.25,   # Texturas (menos peso)
+                'structural_similarity': 0.10, # Elementos fijos
+                'background_hash': 0.05       # Patrones (menos peso)
             }
             
             overall = 0
@@ -357,35 +381,39 @@ class FastImageComparator:
                 if metric in results:
                     overall += results[metric] * weight
             
-            # BONIFICACIONES INTELIGENTES para "mismo lugar"
+            # PENALTY para fondos genuinamente diferentes
+            # Si TODAS las métricas principales son mediocres, es sospechoso
+            main_metrics = ['edge_similarity', 'color_similarity', 'texture_similarity']
+            low_metrics = sum(1 for metric in main_metrics 
+                            if results.get(metric, 0) < 0.6)
             
-            # 1. Bonus por TEXTURAS altas (ladrillo característico)
+            if low_metrics >= 2:  # Si 2+ métricas principales son bajas
+                overall *= 0.8  # PENALTY del 20%
+            
+            # BONIFICACIONES MÁS ESTRICTAS (solo para casos CLAROS)
+            
+            # 1. Bonus SOLO si texturas son realmente altas
             texture_score = results.get('texture_similarity', 0)
-            if texture_score > 0.6:
-                overall = min(1.0, overall * 1.2)  # +20% por textura característica
-            elif texture_score > 0.4:
-                overall = min(1.0, overall * 1.15) # +15% por textura parcial
+            if texture_score > 0.75:  # Más estricto
+                overall = min(1.0, overall * 1.15)  # Menos bonus
             
-            # 2. Bonus por ELEMENTOS ESTRUCTURALES (puerta, marcos)
-            structural_score = results.get('structural_similarity', 0)
-            if structural_score > 0.5:
-                overall = min(1.0, overall * 1.1)  # +10% por elementos únicos
+            # 2. Bonus SOLO si múltiples métricas son REALMENTE altas
+            high_metrics = sum(1 for metric in weights.keys() 
+                             if results.get(metric, 0) > 0.7)  # Umbral más alto
             
-            # 3. Bonus por MÚLTIPLES INDICADORES de mismo lugar
-            decent_metrics = sum(1 for metric in weights.keys() 
-                               if results.get(metric, 0) > 0.5)  # Umbral más bajo
+            if high_metrics >= 3:
+                overall = min(1.0, overall * 1.2)   # +20% solo si 3+ son ALTAS
+            elif high_metrics >= 2:
+                overall = min(1.0, overall * 1.1)   # +10% si 2+ son ALTAS
             
-            if decent_metrics >= 4:
-                overall = min(1.0, overall * 1.25)  # +25% si 4+ métricas decentes
-            elif decent_metrics >= 3:
-                overall = min(1.0, overall * 1.2)   # +20% si 3+ métricas decentes
-            elif decent_metrics >= 2:
-                overall = min(1.0, overall * 1.15)  # +15% si 2+ métricas decentes
-            
-            # 4. BOOST final para casos obvios de mismo lugar
+            # 3. VERIFICACIÓN FINAL: Evitar falsos positivos
+            # Si el promedio general es bajo, limitar resultado máximo
             avg_score = sum(results.get(m, 0) for m in weights.keys()) / len(weights)
-            if avg_score > 0.45:  # Si el promedio es decente
-                overall = min(1.0, overall * 1.1)  # +10% boost final
+            
+            if avg_score < 0.5:  # Si promedio es bajo
+                overall = min(overall, 0.6)  # Máximo 60%
+            elif avg_score < 0.6:  # Si promedio es medio
+                overall = min(overall, 0.8)  # Máximo 80%
             
             return overall
             
