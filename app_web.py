@@ -246,7 +246,7 @@ def index():
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🖼️ Comparador de Imágenes MercadoPago</title>
+         <title>🏞️ Comparador de Fondos MercadoPago</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -265,11 +265,11 @@ def index():
             display: flex; align-items: center; justify-content: center; 
             gap: 20px; flex-wrap: wrap; margin-bottom: 15px;
         }
-        .mp-logo { 
-            width: 60px; height: 60px; transition: transform 0.3s ease;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
-        }
-        .mp-logo:hover { transform: scale(1.1) rotate(5deg); }
+                 .mp-logo { 
+             width: 80px; height: 50px; transition: transform 0.3s ease;
+             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+         }
+         .mp-logo:hover { transform: scale(1.1); }
         .upload-grid { 
             display: grid; grid-template-columns: 1fr auto 1fr; 
             gap: 30px; align-items: center; margin: 30px 0; 
@@ -356,72 +356,101 @@ def index():
             background: rgba(255,255,255,0.1); border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        @media (max-width: 768px) { 
-            .upload-grid { grid-template-columns: 1fr; gap: 20px; }
-            .vs-divider { width: 60px; height: 60px; font-size: 18px; }
-            .similarity-score { font-size: 3.5em; }
-            .title-container { flex-direction: column; gap: 15px; }
-            .mp-logo { width: 50px; height: 50px; }
-        }
+                 @media (max-width: 768px) { 
+             .upload-grid { grid-template-columns: 1fr; gap: 20px; }
+             .vs-divider { width: 60px; height: 60px; font-size: 18px; }
+             .similarity-score { font-size: 3.5em; }
+             .title-container { flex-direction: column; gap: 15px; }
+             .mp-logo { width: 70px; height: 42px; }
+         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="title-container">
-                <svg class="mp-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="mpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#00B9FF;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#009EE3;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <circle cx="50" cy="50" r="45" fill="url(#mpGradient)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-                    <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-weight="bold" font-size="20">MP</text>
-                </svg>
-                <h1>🖼️ Comparador de Imágenes <span class="speed-badge">⚡ ULTRA RÁPIDO</span></h1>
+                                 <svg class="mp-logo" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                     <defs>
+                         <linearGradient id="mpBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                             <stop offset="0%" style="stop-color:#00A6D6;stop-opacity:1" />
+                             <stop offset="50%" style="stop-color:#009EE3;stop-opacity:1" />
+                             <stop offset="100%" style="stop-color:#0091D4;stop-opacity:1" />
+                         </linearGradient>
+                         <linearGradient id="handGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                             <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                             <stop offset="100%" style="stop-color:#f0f8ff;stop-opacity:1" />
+                         </linearGradient>
+                     </defs>
+                     
+                     <!-- Fondo oval azul -->
+                     <ellipse cx="100" cy="60" rx="95" ry="55" fill="url(#mpBg)" stroke="#003d82" stroke-width="3"/>
+                     
+                     <!-- Apretón de manos simplificado -->
+                     <g transform="translate(100,60)">
+                         <!-- Mano izquierda -->
+                         <path d="M-35,-15 C-40,-15 -45,-10 -45,-5 L-45,5 C-45,10 -40,15 -35,15 L-5,15 L-5,10 L-10,5 L-15,0 L-20,-5 L-25,-10 L-35,-15 Z" 
+                               fill="url(#handGradient)" stroke="#003d82" stroke-width="1.5"/>
+                         
+                         <!-- Mano derecha -->
+                         <path d="M35,-15 C40,-15 45,-10 45,-5 L45,5 C45,10 40,15 35,15 L5,15 L5,10 L10,5 L15,0 L20,-5 L25,-10 L35,-15 Z" 
+                               fill="url(#handGradient)" stroke="#003d82" stroke-width="1.5"/>
+                         
+                         <!-- Dedos entrelazados -->
+                         <circle cx="-8" cy="8" r="3" fill="url(#handGradient)" stroke="#003d82" stroke-width="1"/>
+                         <circle cx="0" cy="12" r="3" fill="url(#handGradient)" stroke="#003d82" stroke-width="1"/>
+                         <circle cx="8" cy="8" r="3" fill="url(#handGradient)" stroke="#003d82" stroke-width="1"/>
+                         
+                         <!-- Pulgar -->
+                         <ellipse cx="-12" cy="-8" rx="4" ry="8" fill="url(#handGradient)" stroke="#003d82" stroke-width="1"/>
+                         <ellipse cx="12" cy="-8" rx="4" ry="8" fill="url(#handGradient)" stroke="#003d82" stroke-width="1"/>
+                     </g>
+                     
+                     <!-- Borde inferior decorativo -->
+                     <ellipse cx="100" cy="95" rx="80" ry="15" fill="#ffffff" opacity="0.2"/>
+                 </svg>
+                <h1>🏞️ Comparador de Fondos <span class="speed-badge">⚡ ULTRA RÁPIDO</span></h1>
             </div>
             <p style="font-size: 1.1em; margin: 0;">
-                ✅ Detección instantánea • 🎯 100% preciso para imágenes idénticas • 🚀 Optimizado para velocidad
+                🎯 Detecta si dos fotos tienen el mismo fondo • 👥 Las personas pueden ser diferentes • 🚀 100% preciso
             </p>
         </div>
         
         <div class="upload-grid">
-            <div class="upload-area" id="area1" onclick="document.getElementById('file1').click()">
-                <h3 id="title1">📸 Primera Imagen</h3>
-                <p>Haz clic aquí para seleccionar</p>
-                <input type="file" id="file1" accept="image/*" style="display:none">
-                <img id="preview1" class="image-preview" style="display:none">
-            </div>
-            
-            <div class="vs-divider">VS</div>
-            
-            <div class="upload-area" id="area2" onclick="document.getElementById('file2').click()">
-                <h3 id="title2">📸 Segunda Imagen</h3>
-                <p>Haz clic aquí para seleccionar</p>
-                <input type="file" id="file2" accept="image/*" style="display:none">
-                <img id="preview2" class="image-preview" style="display:none">
-            </div>
+                         <div class="upload-area" id="area1" onclick="document.getElementById('file1').click()">
+                 <h3 id="title1">🏞️ Primera Foto</h3>
+                 <p>Selecciona la primera imagen para comparar su fondo</p>
+                 <input type="file" id="file1" accept="image/*" style="display:none">
+                 <img id="preview1" class="image-preview" style="display:none">
+             </div>
+             
+             <div class="vs-divider">VS</div>
+             
+             <div class="upload-area" id="area2" onclick="document.getElementById('file2').click()">
+                 <h3 id="title2">🏞️ Segunda Foto</h3>
+                 <p>Selecciona la segunda imagen para comparar su fondo</p>
+                 <input type="file" id="file2" accept="image/*" style="display:none">
+                 <img id="preview2" class="image-preview" style="display:none">
+             </div>
         </div>
         
-        <button class="btn" id="compareBtn" onclick="compareImages()" disabled>⚡ Comparar Imágenes</button>
-        
-        <div id="result" style="display:none;" class="result">
-            <h2>📊 Resultado de Comparación</h2>
+                 <button class="btn" id="compareBtn" onclick="compareImages()" disabled>🏞️ Comparar Fondos</button>
+         
+         <div id="result" style="display:none;" class="result">
+             <h2>📊 Comparación de Fondos</h2>
             <div class="similarity-score" id="overallScore">--%</div>
             <div class="details-grid">
-                <div class="detail-item">
-                    <div class="detail-label">🎯 Similitud de Píxeles</div>
-                    <div class="detail-value" id="pixelSim">--%</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">🎨 Similitud de Colores</div>
-                    <div class="detail-value" id="colorSim">--%</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">🔢 Hash Estructural</div>
-                    <div class="detail-value" id="hashSim">--%</div>
-                </div>
+                                 <div class="detail-item">
+                     <div class="detail-label">🏞️ Estructura del Fondo</div>
+                     <div class="detail-value" id="pixelSim">--%</div>
+                 </div>
+                 <div class="detail-item">
+                     <div class="detail-label">🎨 Colores del Fondo</div>
+                     <div class="detail-value" id="colorSim">--%</div>
+                 </div>
+                 <div class="detail-item">
+                     <div class="detail-label">🔢 Patrones Visuales</div>
+                     <div class="detail-value" id="hashSim">--%</div>
+                 </div>
                 <div class="detail-item">
                     <div class="detail-label">⏱️ Tiempo de Proceso</div>
                     <div class="detail-value" id="timeValue">--s</div>
@@ -501,18 +530,18 @@ def index():
                 document.getElementById('hashSim').innerHTML = Math.round(data.hash_similarity * 100) + '%';
                 document.getElementById('timeValue').innerHTML = processingTime + 's';
                 
-                let conclusion = '';
-                if (overall >= 98) {
-                    conclusion = '🎯 <strong>¡Imágenes idénticas!</strong><br>100% seguro que es la misma imagen';
-                } else if (overall >= 90) {
-                    conclusion = '✅ <strong>Prácticamente idénticas</strong><br>Muy alta probabilidad de ser la misma imagen';
-                } else if (overall >= 75) {
-                    conclusion = '🟢 <strong>Imágenes muy similares</strong><br>Mismo contenido o lugar, posibles variaciones menores';
-                } else if (overall >= 50) {
-                    conclusion = '🟡 <strong>Similitudes moderadas</strong><br>Algunos elementos comunes detectados';
-                } else {
-                    conclusion = '🔴 <strong>Imágenes diferentes</strong><br>No parecen estar relacionadas';
-                }
+                                 let conclusion = '';
+                 if (overall >= 98) {
+                     conclusion = '🎯 <strong>¡Mismo fondo detectado!</strong><br>100% seguro que tienen el mismo fondo';
+                 } else if (overall >= 90) {
+                     conclusion = '✅ <strong>Fondos prácticamente idénticos</strong><br>Muy alta probabilidad de ser el mismo lugar';
+                 } else if (overall >= 75) {
+                     conclusion = '🟢 <strong>Fondos muy similares</strong><br>Mismo lugar o ubicación, con ligeras diferencias';
+                 } else if (overall >= 50) {
+                     conclusion = '🟡 <strong>Fondos parcialmente similares</strong><br>Algunos elementos del fondo coinciden';
+                 } else {
+                     conclusion = '🔴 <strong>Fondos diferentes</strong><br>Las fotos fueron tomadas en lugares distintos';
+                 }
                 
                 document.getElementById('conclusion').innerHTML = conclusion;
             })
