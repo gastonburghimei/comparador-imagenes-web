@@ -423,49 +423,75 @@ class FastImageComparator:
             # DETECCIÓN INTELIGENTE: ¿Fondos diferentes VS mismo lugar?
             if very_low_scores >= 1:  # Si CUALQUIER métrica principal es muy baja
                 
-                # VERIFICAR si es MISMO LUGAR con elementos únicos
-                # Buscar características que indican mismo lugar físico
+                # VERIFICACIÓN ANTI-FALSOS POSITIVOS PRIMERO
+                # Detectar fondos obviamente diferentes (azul vs bokeh)
+                definitely_different = False
+                
+                # 1. Si colores MUY bajos + texturas MUY bajas = fondos diferentes
+                if color_score < 0.3 and texture_score < 0.3:
+                    definitely_different = True
+                
+                # 2. Si bordes MUY bajos + colores MUY bajos = arquitectura diferente  
+                if edge_score < 0.3 and color_score < 0.3:
+                    definitely_different = True
+                
+                # 3. Si TODAS las métricas son mediocres (ninguna destaca)
+                if all(score < 0.5 for score in [edge_score, color_score, texture_score, structural_score]):
+                    definitely_different = True
+                
+                # Si es definitivamente diferente, aplicar penalty máximo
+                if definitely_different:
+                    overall = (edge_score * 0.4 + color_score * 0.4 + 
+                              texture_score * 0.15 + structural_score * 0.05)
+                    overall *= 0.5  # PENALTY SEVERA del 50%
+                    return min(overall, 0.25)  # MÁXIMO 25% para fondos obviamente diferentes
+                
+                # VERIFICAR si es MISMO LUGAR con elementos únicos (MÁS ESTRICTO)
                 same_place_indicators = 0
                 
-                # 1. Si texturas decentes (>40%) + estructura decente (>40%) = ladrillos + puerta
-                if texture_score > 0.4 and structural_score > 0.4:
+                # 1. Elementos fijos únicos (MÁS ESTRICTO) = ladrillos + puerta
+                if texture_score > 0.5 and structural_score > 0.5:  # Umbrales más altos
                     same_place_indicators += 2  # Elementos fijos únicos detectados
                 
-                # 2. Si bordes + colores decentes = misma arquitectura
-                if edge_score > 0.35 and color_score > 0.35:
+                # 2. Arquitectura similar (MÁS ESTRICTO)
+                if edge_score > 0.4 and color_score > 0.4:  # Umbrales más altos  
                     same_place_indicators += 1  # Arquitectura similar
                 
-                # 3. Si estructura alta = elemento único (puerta, ventana)
-                if structural_score > 0.5:
+                # 3. Elemento único muy claro (puerta, ventana)
+                if structural_score > 0.6:  # Mucho más estricto
                     same_place_indicators += 1  # Elemento fijo detectado
                 
-                # 4. Si texturas altas = superficie única (ladrillos)
-                if texture_score > 0.5:
+                # 4. Superficie única muy clara (ladrillos)
+                if texture_score > 0.6:  # Mucho más estricto
                     same_place_indicators += 1  # Superficie característica
                 
-                # DECISIÓN INTELIGENTE
-                if same_place_indicators >= 3:  # MISMO LUGAR detectado
-                    # Es mismo lugar con variaciones normales
+                # DECISIÓN INTELIGENTE (MÁS CONSERVADORA)
+                if same_place_indicators >= 4:  # MISMO LUGAR muy claro (4+ indicadores)
+                    # Es mismo lugar con evidencia muy fuerte
                     overall = (edge_score * 0.35 + color_score * 0.35 + 
                               texture_score * 0.20 + structural_score * 0.10)
                     
-                    # BONUS AGRESIVO para mismo lugar con elementos únicos
-                    overall = min(1.0, overall * 1.4)  # +40% bonus por mismo lugar
-                    
-                    # Si múltiples elementos únicos, bonus extra
-                    if same_place_indicators >= 4:
-                        overall = min(1.0, overall * 1.2)  # +20% bonus extra
-                    
+                    # BONUS para mismo lugar con evidencia fuerte
+                    overall = min(1.0, overall * 1.3)  # +30% bonus (antes 40%)
                     return overall
                 
+                elif same_place_indicators >= 3:  # MISMO LUGAR probable
+                    # Mismo lugar con evidencia decente
+                    overall = (edge_score * 0.35 + color_score * 0.35 + 
+                              texture_score * 0.20 + structural_score * 0.10)
+                    
+                    # Bonus moderado
+                    overall = min(1.0, overall * 1.15)  # +15% bonus moderado
+                    return min(overall, 0.9)  # Máximo 90%
+                
                 elif same_place_indicators >= 2:  # Posible mismo lugar
-                    # Cálculo intermedio
+                    # Cálculo conservador  
                     overall = (edge_score * 0.4 + color_score * 0.4 + 
                               texture_score * 0.15 + structural_score * 0.05)
                     
-                    # Bonus moderado
-                    overall = min(1.0, overall * 1.2)  # +20% bonus moderado
-                    return min(overall, 0.7)  # Máximo 70%
+                    # Bonus mínimo
+                    overall = min(1.0, overall * 1.05)  # Solo +5% bonus mínimo
+                    return min(overall, 0.6)  # Máximo 60% (antes 70%)
                 
                 else:  # FONDOS DIFERENTES confirmado
                     # Usar cálculo ultra-conservador
