@@ -760,16 +760,16 @@ def index():
             gap: 30px; align-items: center; margin: 30px 0; 
         }
         .upload-area { 
-            border: 3px dashed rgba(0, 166, 214, 0.8); padding: 50px 30px; 
+            border: 3px dashed rgba(255,255,255,0.8); padding: 50px 30px; 
             border-radius: 15px; cursor: pointer; transition: all 0.3s; 
             min-height: 250px; display: flex; flex-direction: column; 
-            justify-content: center; background: rgba(0, 166, 214, 0.1);
+            justify-content: center; background: linear-gradient(135deg, rgba(0, 166, 214, 0.9), rgba(0, 158, 227, 0.9));
             backdrop-filter: blur(5px); color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .upload-area:hover { 
-            background: rgba(0, 166, 214, 0.2); transform: translateY(-5px); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, rgba(0, 158, 227, 0.95), rgba(0, 144, 212, 0.95)); 
+            transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         .upload-area.has-file { 
             border-color: #4CAF50; background: rgba(76, 175, 80, 0.2); 
@@ -783,7 +783,7 @@ def index():
             border: 3px solid rgba(255,255,255,0.3);
         }
         .btn { 
-            background: linear-gradient(45deg, #4CAF50, #45a049); 
+            background: linear-gradient(45deg, #00A6D6, #009EE3); 
             color: white; padding: 18px 40px; border: none; 
             border-radius: 50px; cursor: pointer; margin: 30px; 
             font-size: 18px; font-weight: bold; transition: all 0.3s; 
@@ -791,7 +791,7 @@ def index():
             text-transform: uppercase; letter-spacing: 1px;
         }
         .btn:hover { 
-            background: linear-gradient(45deg, #45a049, #4CAF50); 
+            background: linear-gradient(45deg, #009EE3, #0091D4); 
             transform: translateY(-3px); 
             box-shadow: 0 8px 16px rgba(0,0,0,0.4);
         }
