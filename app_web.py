@@ -423,28 +423,42 @@ class FastImageComparator:
             # DETECCIÓN INTELIGENTE: ¿Fondos diferentes VS mismo lugar?
             if very_low_scores >= 1:  # Si CUALQUIER métrica principal es muy baja
                 
-                # VERIFICACIÓN ANTI-FALSOS POSITIVOS PRIMERO
+                # VERIFICACIÓN ANTI-FALSOS POSITIVOS ULTRA-AGRESIVA
                 # Detectar fondos obviamente diferentes (azul vs bokeh)
                 definitely_different = False
                 
-                # 1. Si colores MUY bajos + texturas MUY bajas = fondos diferentes
-                if color_score < 0.3 and texture_score < 0.3:
+                # 1. Si colores bajos + texturas bajas = fondos diferentes (más permisivo)
+                if color_score < 0.4 and texture_score < 0.4:  # Antes <0.3
                     definitely_different = True
                 
-                # 2. Si bordes MUY bajos + colores MUY bajos = arquitectura diferente  
-                if edge_score < 0.3 and color_score < 0.3:
+                # 2. Si bordes bajos + colores bajos = arquitectura diferente (más permisivo)
+                if edge_score < 0.4 and color_score < 0.4:  # Antes <0.3
                     definitely_different = True
                 
-                # 3. Si TODAS las métricas son mediocres (ninguna destaca)
-                if all(score < 0.5 for score in [edge_score, color_score, texture_score, structural_score]):
+                # 3. Si TODAS las métricas son mediocres (más permisivo)
+                if all(score < 0.55 for score in [edge_score, color_score, texture_score, structural_score]):  # Antes <0.5
+                    definitely_different = True
+                
+                # 4. NUEVA: Si promedio general es bajo (fondos diferentes)
+                avg_all = (edge_score + color_score + texture_score + structural_score) / 4
+                if avg_all < 0.45:  # Promedio bajo = fondos diferentes
+                    definitely_different = True
+                
+                # 5. NUEVA: Si solo 1 métrica es decente y el resto bajas
+                decent_metrics = sum(1 for score in [edge_score, color_score, texture_score, structural_score] if score > 0.5)
+                if decent_metrics <= 1:  # Solo 1 o ninguna métrica decente
+                    definitely_different = True
+                
+                # 6. NUEVA: Si texturas + bordes muy bajos (no hay elementos únicos)
+                if texture_score < 0.4 and edge_score < 0.4:
                     definitely_different = True
                 
                 # Si es definitivamente diferente, aplicar penalty máximo
                 if definitely_different:
                     overall = (edge_score * 0.4 + color_score * 0.4 + 
                               texture_score * 0.15 + structural_score * 0.05)
-                    overall *= 0.5  # PENALTY SEVERA del 50%
-                    return min(overall, 0.25)  # MÁXIMO 25% para fondos obviamente diferentes
+                    overall *= 0.3  # PENALTY MÁS SEVERA del 70% (antes 50%)
+                    return min(overall, 0.2)  # MÁXIMO 20% para fondos obviamente diferentes (antes 25%)
                 
                 # VERIFICAR si es MISMO LUGAR con elementos únicos (MÁS ESTRICTO)
                 same_place_indicators = 0
