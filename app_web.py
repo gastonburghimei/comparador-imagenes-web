@@ -420,20 +420,66 @@ class FastImageComparator:
             main_scores = [edge_score, color_score, texture_score]
             very_low_scores = sum(1 for score in main_scores if score < 0.4)
             
-            # Si hay fondos muy diferentes, ser ultra-conservador
+            # DETECCIÓN INTELIGENTE: ¿Fondos diferentes VS mismo lugar?
             if very_low_scores >= 1:  # Si CUALQUIER métrica principal es muy baja
-                # Usar solo el promedio SIN bonificaciones
-                overall = (edge_score * 0.4 + color_score * 0.4 + 
-                          texture_score * 0.15 + structural_score * 0.05)
                 
-                # PENALTY AGRESIVA para fondos diferentes
-                if very_low_scores >= 2:  # Si 2+ métricas son muy bajas
-                    overall *= 0.6  # PENALTY del 40%
-                elif very_low_scores >= 1:  # Si 1+ métrica es muy baja
-                    overall *= 0.75  # PENALTY del 25%
+                # VERIFICAR si es MISMO LUGAR con elementos únicos
+                # Buscar características que indican mismo lugar físico
+                same_place_indicators = 0
                 
-                # LÍMITE MÁXIMO para fondos diferentes
-                return min(overall, 0.4)  # MÁXIMO 40% para fondos diferentes
+                # 1. Si texturas decentes (>40%) + estructura decente (>40%) = ladrillos + puerta
+                if texture_score > 0.4 and structural_score > 0.4:
+                    same_place_indicators += 2  # Elementos fijos únicos detectados
+                
+                # 2. Si bordes + colores decentes = misma arquitectura
+                if edge_score > 0.35 and color_score > 0.35:
+                    same_place_indicators += 1  # Arquitectura similar
+                
+                # 3. Si estructura alta = elemento único (puerta, ventana)
+                if structural_score > 0.5:
+                    same_place_indicators += 1  # Elemento fijo detectado
+                
+                # 4. Si texturas altas = superficie única (ladrillos)
+                if texture_score > 0.5:
+                    same_place_indicators += 1  # Superficie característica
+                
+                # DECISIÓN INTELIGENTE
+                if same_place_indicators >= 3:  # MISMO LUGAR detectado
+                    # Es mismo lugar con variaciones normales
+                    overall = (edge_score * 0.35 + color_score * 0.35 + 
+                              texture_score * 0.20 + structural_score * 0.10)
+                    
+                    # BONUS AGRESIVO para mismo lugar con elementos únicos
+                    overall = min(1.0, overall * 1.4)  # +40% bonus por mismo lugar
+                    
+                    # Si múltiples elementos únicos, bonus extra
+                    if same_place_indicators >= 4:
+                        overall = min(1.0, overall * 1.2)  # +20% bonus extra
+                    
+                    return overall
+                
+                elif same_place_indicators >= 2:  # Posible mismo lugar
+                    # Cálculo intermedio
+                    overall = (edge_score * 0.4 + color_score * 0.4 + 
+                              texture_score * 0.15 + structural_score * 0.05)
+                    
+                    # Bonus moderado
+                    overall = min(1.0, overall * 1.2)  # +20% bonus moderado
+                    return min(overall, 0.7)  # Máximo 70%
+                
+                else:  # FONDOS DIFERENTES confirmado
+                    # Usar cálculo ultra-conservador
+                    overall = (edge_score * 0.4 + color_score * 0.4 + 
+                              texture_score * 0.15 + structural_score * 0.05)
+                    
+                    # PENALTY AGRESIVA para fondos diferentes
+                    if very_low_scores >= 2:  # Si 2+ métricas son muy bajas
+                        overall *= 0.6  # PENALTY del 40%
+                    elif very_low_scores >= 1:  # Si 1+ métrica es muy baja
+                        overall *= 0.75  # PENALTY del 25%
+                    
+                    # LÍMITE MÁXIMO para fondos diferentes
+                    return min(overall, 0.4)  # MÁXIMO 40% para fondos diferentes
             
             # CÁLCULO NORMAL solo para fondos genuinamente similares
             weights = {
