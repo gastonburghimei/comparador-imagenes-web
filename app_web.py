@@ -735,14 +735,16 @@ def index():
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: linear-gradient(135deg, #00A6D6 0%, #009EE3 100%);
-            margin: 0; padding: 20px; color: white; text-align: center; min-height: 100vh;
+            background: linear-gradient(135deg, #FFF159 0%, #FFEB3B 50%, #FFC107 100%);
+            margin: 0; padding: 20px; color: #2c3e50; text-align: center; min-height: 100vh;
         }
         .container { max-width: 1000px; margin: 0 auto; }
         .header { 
-            background: rgba(0, 166, 214, 0.2); padding: 30px; border-radius: 15px; 
-            margin: 20px 0; border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, rgba(0, 166, 214, 0.95), rgba(0, 158, 227, 0.95)); 
+            padding: 30px; border-radius: 15px; margin: 20px 0; 
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px); color: white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
         .title-container { 
             display: flex; align-items: center; justify-content: center; 
@@ -758,15 +760,16 @@ def index():
             gap: 30px; align-items: center; margin: 30px 0; 
         }
         .upload-area { 
-            border: 3px dashed rgba(255,255,255,0.8); padding: 50px 30px; 
+            border: 3px dashed rgba(0, 166, 214, 0.8); padding: 50px 30px; 
             border-radius: 15px; cursor: pointer; transition: all 0.3s; 
             min-height: 250px; display: flex; flex-direction: column; 
-            justify-content: center; background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(5px);
+            justify-content: center; background: rgba(0, 166, 214, 0.1);
+            backdrop-filter: blur(5px); color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .upload-area:hover { 
-            background: rgba(255,255,255,0.15); transform: translateY(-5px); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            background: rgba(0, 166, 214, 0.2); transform: translateY(-5px); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .upload-area.has-file { 
             border-color: #4CAF50; background: rgba(76, 175, 80, 0.2); 
@@ -797,10 +800,10 @@ def index():
             box-shadow: none;
         }
         .result { 
-            background: rgba(255,255,255,0.15); padding: 40px; 
-            border-radius: 20px; margin: 30px 0; backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255,255,255,0.3);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, rgba(0, 166, 214, 0.9), rgba(0, 158, 227, 0.9)); 
+            padding: 40px; border-radius: 20px; margin: 30px 0; backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255,255,255,0.3); color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
         .similarity-score { 
             font-size: 5em; font-weight: bold; margin: 30px 0; 
@@ -814,9 +817,9 @@ def index():
             gap: 20px; margin: 30px 0; 
         }
         .detail-item { 
-            background: rgba(255,255,255,0.15); padding: 20px; 
+            background: rgba(255,255,255,0.2); padding: 20px; 
             border-radius: 15px; border-left: 5px solid #4CAF50;
-            backdrop-filter: blur(5px); transition: transform 0.3s;
+            backdrop-filter: blur(5px); transition: transform 0.3s; color: white;
         }
         .detail-item:hover { transform: translateY(-2px); }
         .detail-label { font-size: 0.95em; opacity: 0.9; margin-bottom: 8px; }
@@ -836,8 +839,8 @@ def index():
         }
         .conclusion { 
             margin-top: 25px; font-size: 1.2em; padding: 20px; 
-            background: rgba(255,255,255,0.1); border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15); border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.3); color: white;
         }
                  @media (max-width: 768px) { 
              .upload-grid { grid-template-columns: 1fr; gap: 20px; }
