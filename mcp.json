@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "account-relations": {
+      "type": "sse", 
+      "url": "https://account-relations-mcp.melioffice.com/sse"
+    },
+    "bigquery": {
+      "command": "python3",
+      "args": ["/Users/gasburghi/Documents/SQL/mcp_bigquery_server.py"],
+      "cwd": "/Users/gasburghi/Documents/SQL"
+    }
+  }
+}

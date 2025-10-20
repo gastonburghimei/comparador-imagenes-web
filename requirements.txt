@@ -1,8 +1,9 @@
-# Comparador de Fondos de Imágenes - Dependencias Python
+# Comparador de Imágenes con ML - Dependencias Python
 
-# Framework web
+# Framework web y servidor
 Flask==2.3.3
 Flask-CORS==4.0.0
+gunicorn==21.2.0
 
 # Procesamiento de imágenes
 Pillow==10.1.0
@@ -13,6 +14,7 @@ scikit-image==0.21.0
 numpy==1.24.3
 scipy==1.11.4
 scikit-learn==1.3.2
+joblib==1.3.2
 
 # Utilidades adicionales
 Werkzeug==2.3.7

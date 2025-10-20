@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Fondos de Imágenes</title>
+    <link rel="stylesheet" href="main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="title-container">
+                <svg class="mp-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="mpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#00B9FF;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#009EE3;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="url(#mpGradient)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                    <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-weight="bold" font-size="22">MP</text>
+                </svg>
+                <h1><i class="fas fa-images"></i> Comparador de Imágenes</h1>
+            </div>
+            <p>Sube dos imágenes y descubre si son similares</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Sección de carga de imágenes -->
+            <div class="upload-section">
+                <div class="upload-container">
+                    <div class="upload-area" id="upload1">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Imagen 1</h3>
+                            <p>Arrastra aquí tu primera imagen o <span class="browse-link">navega</span></p>
+                            <input type="file" id="file1" accept="image/*" hidden>
+                        </div>
+                        <div class="image-preview" id="preview1" style="display: none;">
+                            <img id="img1" src="" alt="Imagen 1">
+                            <button class="remove-btn" id="remove1"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="vs-divider">
+                        <span>VS</span>
+                    </div>
+
+                    <div class="upload-area" id="upload2">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Imagen 2</h3>
+                            <p>Arrastra aquí tu segunda imagen o <span class="browse-link">navega</span></p>
+                            <input type="file" id="file2" accept="image/*" hidden>
+                        </div>
+                        <div class="image-preview" id="preview2" style="display: none;">
+                            <img id="img2" src="" alt="Imagen 2">
+                            <button class="remove-btn" id="remove2"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compare-section">
+                    <button id="compareBtn" class="compare-btn" disabled>
+                        <i class="fas fa-balance-scale"></i>
+                        Comparar Fondos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sección de resultados -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-container">
+                    <div class="result-header">
+                        <h2><i class="fas fa-chart-line"></i> Resultados de la Comparación</h2>
+                    </div>
+                    
+                    <div class="result-card">
+                        <div class="similarity-score">
+                            <div class="score-circle">
+                                <span id="similarityScore">0%</span>
+                            </div>
+                            <h3>Similitud de Fondos</h3>
+                        </div>
+                        
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <i class="fas fa-palette"></i>
+                                <span>Similitud de colores:</span>
+                                <span id="colorSimilarity">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-shapes"></i>
+                                <span>Similitud de texturas:</span>
+                                <span id="textureSimilarity">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-vector-square"></i>
+                                <span>Similitud estructural:</span>
+                                <span id="structuralSimilarity">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="result-conclusion">
+                            <div id="conclusionIcon" class="conclusion-icon">
+                                <i class="fas fa-question"></i>
+                            </div>
+                            <p id="conclusionText">Esperando análisis...</p>
+                        </div>
+                    </div>
+
+                    <div class="processed-images">
+                        <div class="processed-image">
+                            <h4>Fondo Extraído - Imagen 1</h4>
+                            <div class="processed-preview" id="processedImg1">
+                                <div class="loading-placeholder">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Procesando...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="processed-image">
+                            <h4>Fondo Extraído - Imagen 2</h4>
+                            <div class="processed-preview" id="processedImg2">
+                                <div class="loading-placeholder">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Procesando...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading overlay -->
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <h3>Analizando imágenes...</h3>
+                    <p>Extrayendo fondos y comparando similitudes</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 Comparador de Fondos - Tecnología de Visión Artificial</p>
+        </footer>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html> 

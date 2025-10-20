@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Ajedrez</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>♔ Ajedrez Tecnológico ♚</h1>
+        
+        <div class="instructions">
+            <h2>🎮 Guía de Piezas</h2>
+            <div class="instructions-grid">
+                <div class="instruction-item">
+                    <span class="instruction-emoji">👨‍💻</span>
+                    <span class="instruction-text">Peón = Trabajador IT</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-emoji">▣</span>
+                    <span class="instruction-text">Torre = Código QR</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-emoji">🦠</span>
+                    <span class="instruction-text">Caballo = Malware</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-emoji">🍪</span>
+                    <span class="instruction-text">Alfil = Cookie</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-emoji">📱</span>
+                    <span class="instruction-text">Reina = Dispositivo Móvil</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-emoji">💻</span>
+                    <span class="instruction-text">Rey = Computadora</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <div class="player-info">
+                <div id="current-player">Turno: Celestes</div>
+                <div id="game-status"></div>
+            </div>
+            
+            <div class="controls">
+                <button id="reset-btn">Nueva Partida</button>
+                <button id="undo-btn">Deshacer</button>
+            </div>
+        </div>
+        
+        <div class="board-container">
+            <div class="board" id="chessboard">
+                <!-- El tablero se generará dinámicamente con JavaScript -->
+            </div>
+        </div>
+        
+        <div class="captured-pieces">
+            <div class="captured-white">
+                <h3>Piezas Capturadas (Celestes)</h3>
+                <div id="captured-white-pieces"></div>
+            </div>
+            <div class="captured-black">
+                <h3>Piezas Capturadas (Amarillas)</h3>
+                <div id="captured-black-pieces"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 

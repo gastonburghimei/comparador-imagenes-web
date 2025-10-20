@@ -1,47 +1,53 @@
-# Archivos de Python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
+env/
+ENV/
 
-# Archivos temporales
-*.log
-*.tmp
-.DS_Store
-Thumbs.db
-
-# Archivos de configuración local
-.env
-*.env
-config.local.py
-
-# Archivos de IDE
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Archivos específicos del proyecto
-credentials/
-*.key
-*.json
-test_*.py
-diagnostico.py
-demo.py
-app_*.py
-!app_web.py
-*.sql
-*.gs
-*.xlsx
-*.md
-!README_WEB.md
-main.*
-script.js
-index.html
-style.css 
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+tmp/
+uploads/
+*.tmp
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Test files
+test_*.html

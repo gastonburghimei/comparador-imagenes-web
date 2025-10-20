@@ -1,0 +1,342 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #00A6D6 0%, #009EE3 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#current-player {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+}
+
+#game-status {
+    font-size: 1em;
+    color: #666;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(45deg, #00A6D6, #009EE3);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    border: 4px solid #8B4513;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.square {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 35px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.square.light {
+    background-color: #FFFFFF;
+}
+
+.square.dark {
+    background-color: #000000;
+}
+
+.square:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+.square.selected {
+    background-color: #7fc97f !important;
+    box-shadow: inset 0 0 0 3px #4a90e2;
+}
+
+.square.valid-move {
+    background-color: #90EE90 !important;
+    position: relative;
+}
+
+.square.valid-move::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #228B22;
+    border-radius: 50%;
+    opacity: 0.7;
+}
+
+.square.capture-move {
+    background-color: #FFB6C1 !important;
+    position: relative;
+}
+
+.square.capture-move::after {
+    content: '';
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border: 3px solid #DC143C;
+    border-radius: 50%;
+    opacity: 0.7;
+}
+
+.square.last-move {
+    background-color: #FFFF99 !important;
+}
+
+.piece {
+    user-select: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.piece.white {
+    text-shadow: 2px 2px 4px rgba(135, 206, 235, 0.8) !important;
+    font-weight: bold !important;
+}
+
+.piece.black {
+    text-shadow: 2px 2px 4px rgba(255, 255, 0, 0.8) !important;
+    font-weight: bold !important;
+}
+
+.piece:hover {
+    transform: scale(1.1);
+}
+
+.captured-pieces {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.captured-white, .captured-black {
+    flex: 1;
+    min-width: 250px;
+}
+
+.captured-pieces h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+#captured-white-pieces, #captured-black-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    min-height: 50px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+.captured-piece {
+    font-size: 25px;
+    opacity: 0.7;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Animaciones */
+@keyframes captureAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(0) rotate(360deg); }
+}
+
+.capturing {
+    animation: captureAnimation 0.5s ease-in-out;
+}
+
+@keyframes moveAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.moving {
+    animation: moveAnimation 0.3s ease-in-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .game-container {
+        padding: 20px;
+    }
+    
+    .board {
+        grid-template-columns: repeat(8, 45px);
+        grid-template-rows: repeat(8, 45px);
+    }
+    
+    .square {
+        width: 45px;
+        height: 45px;
+        font-size: 28px;
+    }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .captured-pieces {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .board {
+        grid-template-columns: repeat(8, 35px);
+        grid-template-rows: repeat(8, 35px);
+    }
+    
+    .square {
+        width: 35px;
+        height: 35px;
+        font-size: 22px;
+    }
+}
+
+/* Instructivo */
+.instructions {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.instructions h2 {
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+.instructions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    text-align: left;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+.instruction-emoji {
+    font-size: 24px;
+    width: 30px;
+    text-align: center;
+}
+
+.instruction-text {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Override completo de colores */
+.piece.white,
+.piece.white * {
+    filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(3) brightness(0.8) !important;
+    -webkit-filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(3) brightness(0.8) !important;
+}
+
+.piece.black,
+.piece.black * {
+    filter: grayscale(1) sepia(1) hue-rotate(-10deg) saturate(5) brightness(1.8) !important;
+    -webkit-filter: grayscale(1) sepia(1) hue-rotate(-10deg) saturate(5) brightness(1.8) !important;
+} 
